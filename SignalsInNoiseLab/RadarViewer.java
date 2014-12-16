@@ -1,4 +1,5 @@
 import javax.swing.JFrame;
+import java.util.Scanner;
 
 /**
  * Class that contains the main method for the program and creates the frame containing the component.
@@ -14,11 +15,26 @@ public class RadarViewer
      */
     public static void main(String[] args) throws InterruptedException
     {
-        // create the radar, set the monster location, and perform the initial scan
-        final int ROWS = 100;
-        final int COLS = 100;
-        Radar radar = new Radar(ROWS, COLS,1,1);
-        radar.setNoiseFraction(0.10);
+        // create the radar, prompts user for dimensions, starting postion, and veloctiy     
+        
+        Scanner in = new Scanner(System.in);
+        
+        System.out.println("How many rows should the radar have?: ");
+        final int ROWS = in.nextInt();
+        System.out.println("How many columns should the radar have?: ");
+        final int COLS = in.nextInt();
+        System.out.println("How much should the monster move in the x direction (between 1 and 5 inclusive)?: ");
+        final int dX = in.nextInt();
+        System.out.println("How much should the monster move in the y direction (between 1 and 5 inclusive)?: ");
+        final int dY = in.nextInt();
+        System.out.println("What should the starting x-coordinate of the monster be?: ");
+        final int xInit = in.nextInt();
+        System.out.println("What should the starting y-coordinate of the monster be?: ");
+        final int yInit = in.nextInt();
+        
+        //Create the radar class with the entered parameters
+        Radar radar = new Radar(ROWS, COLS, dX, dY, xInit, yInit);
+        radar.setNoiseFraction(0.01);
         radar.scan();
         
         JFrame frame = new JFrame();
@@ -47,6 +63,30 @@ public class RadarViewer
             
             frame.repaint();
         }
+        
+        //Finds the max value of the accumulator
+        int max = 0;
+        for (int i = 0; i<11; i++){
+            for (int j = 0; j<11; j++){
+                if (radar.getAccumValue(i,j)>max)
+                {
+                    max = radar.getAccumValue(i,j);
+                }
+            }            
+        }
+        
+        //Finds the two different index values of the max value of the accumulator, or the x and y velocites
+        for (int i = 0; i<11; i++)
+        {
+            for (int j = 0; j<11; j++)
+            {
+                if (radar.getAccumValue(i,j) == max)
+                {
+                    System.out.println("Change in X equals: " + (j-5));
+                    System.out.println("Change in Y equals: " + (i-5));
+                }
+            }            
+        }
+        
     }
-
 }

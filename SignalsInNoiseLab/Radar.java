@@ -2,8 +2,8 @@
 /**
  * The model for radar scan and accumulator
  * 
- * @author @gcschmit
- * @version 19 July 2014
+ * @author Nikhil Sivapatham
+ * @version 15 December 2014
  */
 public class Radar
 {
@@ -26,10 +26,14 @@ public class Radar
 
     // number of scans of the radar since construction
     private int numScans;
-
+    
+    //The user set velocities
     private int dX;
-
     private int dY;
+
+    //The user set initial Location
+    private int xInit;
+    private int yInit;
 
     /**
      * Constructor for objects of class Radar
@@ -37,22 +41,30 @@ public class Radar
      * @param   rows    the number of rows in the radar grid
      * @param   cols    the number of columns in the radar grid
      */
-    public Radar(int rows, int cols , int dX, int dY)
+    public Radar(int rows, int cols , int changeX, int changeY, int initX, int initY)
     {
         // initialize instance variables
         currentScan = new boolean[rows][cols]; // elements will be set to false
         accumulator = new int[11][11]; // elements will be set to 0
         previousScan = new boolean[rows][cols];
 
-        // randomly set the location of the monster (can be explicity set through the
+        // Sets the location of the monster from the user input (can be explicity set through the
         //  setMonsterLocation method
-        monsterLocationRow = (int)(Math.random() * rows);
-        monsterLocationCol = (int)(Math.random() * cols);
+        monsterLocationRow = initY;
+        monsterLocationCol = initX;
 
-        dX = dX;
-        dY = dY;
+        //Sets the ammount the monster will per frame from user input
+        dX = changeX;
+        dY = changeY;
 
-        noiseFraction = 0.05;
+        //Initial postion, just for reference mainly
+        xInit = initX;
+        yInit = initY;
+
+        //NoiseFration, noiseFraction and accuracy of lab share an inverse relationship sadly :(
+        noiseFraction = 0.01;
+        
+        //Keeps track of ammount of scan done
         numScans= 0;
     }
 
@@ -66,37 +78,35 @@ public class Radar
         for(int row = 0; row < currentScan.length; row++)
         {
             for(int col = 0; col < currentScan[0].length; col++)
-            {
-                if (currentScan[row][col] = true)
-                {
-                    previousScan[row][col] = currentScan[row][col];
-                }
+            {                
+                previousScan[row][col] = currentScan[row][col];                
                 currentScan[row][col] = false;
             }
         }
 
-        // detect the monster
-        this.setMonsterLocation(monsterLocationRow+dY, monsterLocationCol+dX);
-
         // inject noise into the grid
         injectNoise();
 
+        // Move the monster and detect it
+        this.setMonsterLocation((monsterLocationRow+dY), (monsterLocationCol+dX));   
+
+        
         // udpate the accumulator
-        for(int row = 0; row < currentScan.length; row++)
+        for(int row = 0; row < previousScan.length; row++)
         {
-            for(int col = 0; col < currentScan[0].length; col++)
+            for(int col = 0; col < previousScan[0].length; col++)
             {
-                if (previousScan[row][col] = true)
+                //Basically just finds every true location in the previous scan
+                if (previousScan[row][col] == true)
                 {                    
-                    int xMax = col +5;                    
-                    int yMax = row+5;
-                    for (int xCurrent = 0; xCurrent<this.getNumCols; xCurrent++)
+                    for (int yCurrent = 0; yCurrent<this.getNumRows(); yCurrent++)
                     {
-                        for (int yCurrent = 0; yCurrent<this.getNumRows; yCurrent++)
+                        for (int xCurrent = 0; xCurrent<this.getNumCols(); xCurrent++)
                         {
-                            if ((yCurrent+row >= 0) && (xCurrent+col >= 0) )
+                            //Finds every location in the current scan within 5 cells that are alive 
+                            if ((Math.abs(xCurrent-col) <=5) && (Math.abs(yCurrent-row) <=5) && (currentScan[yCurrent][xCurrent] == true))
                             {
-                                System.out.println(row+"\n"+yCurrent+"\n"+col+"\n"+xCurrent);
+                                //Increases the respective "veloctiy" (from index values)
                                 accumulator[yCurrent-row+5][xCurrent-col+5] ++;
                             }
                         }
@@ -118,23 +128,35 @@ public class Radar
      */
     public void setMonsterLocation(int row, int col)
     {
-        if (row>0)
-        {
-            MonsterLocationRow = row + this.getNumRows-1;
-        } else if (row<0) {
-            monsterLocationRow = row-this.getNumRows+1;
-
-        } else if (col>0) {
-            monsterLocationCol = col - this.getNumCols+1;
-        } else if (col<0) {
-            monsterLocationCol = col + this.getNumCols-1;
-        } else{
-            // remember the row and col of the monster's location
+        //wrapper for the rows remember the row of the monster's location 
+        if ((row>this.getNumRows()-1))
+        {            
+            monsterLocationRow = row - this.getNumRows();
+        }
+        else if (row<0) 
+        {            
+            monsterLocationRow = row+this.getNumRows();
+        }
+        else {
             monsterLocationRow = row;
+        }
+
+        //wrapper for the columns and remember the col of the monster's location 
+        if ((col>this.getNumCols()-1)) 
+        {
+            monsterLocationCol = col - this.getNumCols();
+        }
+        else if (col<0) 
+        {
+            monsterLocationCol = col + this.getNumCols();
+        } 
+        else
+        {     
             monsterLocationCol = col;        
         }
+        
         // update the radar grid to show that something was detected at the specified location
-        currentScan[row][col] = true;
+        currentScan[monsterLocationRow][monsterLocationCol] = true;
     }
 
     /**
@@ -203,6 +225,56 @@ public class Radar
     {
         return numScans;
     }
+
+    /**
+     * Returns specified value of accumulator
+     *
+     * @param  row   the row value of the value
+     * @param  col   the column value of the value
+     * @return     The value at the specified location
+     */
+    public int getAccumValue(int row, int column)
+    {
+        return accumulator[row][column];
+    }
+
+    /**
+     * Returns the final resultant velocities in an array
+     *
+     * @return     An array of the two velocities
+     */
+    public int[] getVelocities()
+    {
+        //Finds the max value
+        int max = 0;
+        for (int i = 0; i<11; i++){
+            for (int j = 0; j<11; j++){
+                if (getAccumValue(i,j)>max)
+                {
+                    max = getAccumValue(i,j);
+                }
+            }            
+        }
+        
+        //Finds the max's indexes, which are its two velocity components <--(Look at that physics terminology, gonna get ace that AP Physics 1 final !)
+        for (int i = 0; i<11; i++)
+        {
+            for (int j = 0; j<11; j++)
+            {
+                if (getAccumValue(i,j) == max)
+                {                 
+                    int xVeloctiy = (j-5);
+                    int yVeloctiy = (i-5);
+                    int[] velocities = {xVeloctiy, yVeloctiy};
+                    return velocities; 
+                }
+            }            
+        }
+        //Returns empty set incase world ends becuase Java is picky like that
+        int[] exception = new int[10];
+        return exception;
+    }
+
 
     /**
      * Sets cells as falsely triggering detection based on the specified probability
